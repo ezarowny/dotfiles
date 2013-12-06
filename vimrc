@@ -50,7 +50,8 @@ set smartindent
 set laststatus=2
 set noshowmode
 
-" Show relative numbers
+" Show both relative numbers and the current line
+set number
 set relativenumber
 
 " ctrlp settings
