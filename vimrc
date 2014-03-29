@@ -12,12 +12,14 @@ Bundle 'gmarik/vundle'
 "
 Bundle 'kien/ctrlp.vim'
 Bundle 'tpope/vim-fugitive'
-Bundle 'Lokaltog/powerline', {'rtp': 'powerline/bindings/vim/'}
+Bundle 'bling/vim-airline'
 Bundle 'nvie/vim-flake8'
 Bundle 'altercation/vim-colors-solarized'
 Bundle 'sickill/vim-monokai'
 Bundle 'airblade/vim-gitgutter'
 Bundle 'mileszs/ack.vim'
+Bundle 'scrooloose/nerdcommenter'
+Bundle 'groenewege/vim-less'
 
 filetype plugin indent on     " required!
 syntax enable
@@ -63,3 +65,8 @@ autocmd BufWritePost *.py call Flake8()
 
 " vim-gitgutter settings
 highlight clear SignColumn
+
+" vim-airline settings
+let g:airline_powerline_fonts = 1
+let g:airline#extensions#whitespace#enabled = 1
+let g:airline#extensions#tabline#enabled = 1
