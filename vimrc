@@ -66,7 +66,7 @@ set relativenumber
 set wildignore+=*.pyc
 
 " vim-flake8 settings
-let flake8_max_line_length = 99
+let g:flake8_max_line_length = 99
 autocmd BufWritePost *.py call Flake8()
 
 " vim-gitgutter settings
