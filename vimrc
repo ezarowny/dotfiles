@@ -12,7 +12,7 @@ Plugin 'gmarik/Vundle.vim'
 
 " Other bundles:
 "
-Plugin 'kien/ctrlp.vim'
+Plugin 'ctrlpvim/ctrlp.vim'
 Plugin 'tpope/vim-fugitive'
 Plugin 'bling/vim-airline'
 Plugin 'nvie/vim-flake8'
