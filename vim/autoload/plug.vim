@@ -22,10 +22,10 @@
 "   Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
 "
 "   " On-demand loading
-"   Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
+"   Plug 'preservim/nerdtree', { 'on': 'NERDTreeToggle' }
 "   Plug 'tpope/vim-fireplace', { 'for': 'clojure' }
 "
-"   " Using a non-master branch
+"   " Using a non-default branch
 "   Plug 'rdnetto/YCM-Generator', { 'branch': 'stable' }
 "
 "   " Using a tagged release; wildcard allowed (requires git 1.9.2 or above)
@@ -99,8 +99,14 @@ let s:mac_gui = has('gui_macvim') && has('gui_running')
 let s:is_win = has('win32')
 let s:nvim = has('nvim-0.2') || (has('nvim') && exists('*jobwait') && !s:is_win)
 let s:vim8 = has('patch-8.0.0039') && exists('*job_start')
-let s:me = resolve(expand('<sfile>:p'))
-let s:base_spec = { 'branch': 'master', 'frozen': 0 }
+if s:is_win && &shellslash
+  set noshellslash
+  let s:me = resolve(expand('<sfile>:p'))
+  set shellslash
+else
+  let s:me = resolve(expand('<sfile>:p'))
+endif
+let s:base_spec = { 'branch': '', 'frozen': 0 }
 let s:TYPE = {
 \   'string':  type(''),
 \   'list':    type([]),
@@ -110,18 +116,140 @@ let s:TYPE = {
 let s:loaded = get(s:, 'loaded', {})
 let s:triggers = get(s:, 'triggers', {})
 
+function! s:is_powershell(shell)
+  return a:shell =~# 'powershell\(\.exe\)\?$' || a:shell =~# 'pwsh\(\.exe\)\?$'
+endfunction
+
+function! s:isabsolute(dir) abort
+  return a:dir =~# '^/' || (has('win32') && a:dir =~? '^\%(\\\|[A-Z]:\)')
+endfunction
+
+function! s:git_dir(dir) abort
+  let gitdir = s:trim(a:dir) . '/.git'
+  if isdirectory(gitdir)
+    return gitdir
+  endif
+  if !filereadable(gitdir)
+    return ''
+  endif
+  let gitdir = matchstr(get(readfile(gitdir), 0, ''), '^gitdir: \zs.*')
+  if len(gitdir) && !s:isabsolute(gitdir)
+    let gitdir = a:dir . '/' . gitdir
+  endif
+  return isdirectory(gitdir) ? gitdir : ''
+endfunction
+
+function! s:git_origin_url(dir) abort
+  let gitdir = s:git_dir(a:dir)
+  let config = gitdir . '/config'
+  if empty(gitdir) || !filereadable(config)
+    return ''
+  endif
+  return matchstr(join(readfile(config)), '\[remote "origin"\].\{-}url\s*=\s*\zs\S*\ze')
+endfunction
+
+function! s:git_revision(dir) abort
+  let gitdir = s:git_dir(a:dir)
+  let head = gitdir . '/HEAD'
+  if empty(gitdir) || !filereadable(head)
+    return ''
+  endif
+
+  let line = get(readfile(head), 0, '')
+  let ref = matchstr(line, '^ref: \zs.*')
+  if empty(ref)
+    return line
+  endif
+
+  if filereadable(gitdir . '/' . ref)
+    return get(readfile(gitdir . '/' . ref), 0, '')
+  endif
+
+  if filereadable(gitdir . '/packed-refs')
+    for line in readfile(gitdir . '/packed-refs')
+      if line =~# ' ' . ref
+        return matchstr(line, '^[0-9a-f]*')
+      endif
+    endfor
+  endif
+
+  return ''
+endfunction
+
+function! s:git_local_branch(dir) abort
+  let gitdir = s:git_dir(a:dir)
+  let head = gitdir . '/HEAD'
+  if empty(gitdir) || !filereadable(head)
+    return ''
+  endif
+  let branch = matchstr(get(readfile(head), 0, ''), '^ref: refs/heads/\zs.*')
+  return len(branch) ? branch : 'HEAD'
+endfunction
+
+function! s:git_origin_branch(spec)
+  if len(a:spec.branch)
+    return a:spec.branch
+  endif
+
+  " The file may not be present if this is a local repository
+  let gitdir = s:git_dir(a:spec.dir)
+  let origin_head = gitdir.'/refs/remotes/origin/HEAD'
+  if len(gitdir) && filereadable(origin_head)
+    return matchstr(get(readfile(origin_head), 0, ''),
+                  \ '^ref: refs/remotes/origin/\zs.*')
+  endif
+
+  " The command may not return the name of a branch in detached HEAD state
+  let result = s:lines(s:system('git symbolic-ref --short HEAD', a:spec.dir))
+  return v:shell_error ? '' : result[-1]
+endfunction
+
+if s:is_win
+  function! s:plug_call(fn, ...)
+    let shellslash = &shellslash
+    try
+      set noshellslash
+      return call(a:fn, a:000)
+    finally
+      let &shellslash = shellslash
+    endtry
+  endfunction
+else
+  function! s:plug_call(fn, ...)
+    return call(a:fn, a:000)
+  endfunction
+endif
+
+function! s:plug_getcwd()
+  return s:plug_call('getcwd')
+endfunction
+
+function! s:plug_fnamemodify(fname, mods)
+  return s:plug_call('fnamemodify', a:fname, a:mods)
+endfunction
+
+function! s:plug_expand(fmt)
+  return s:plug_call('expand', a:fmt, 1)
+endfunction
+
+function! s:plug_tempname()
+  return s:plug_call('tempname')
+endfunction
+
 function! plug#begin(...)
   if a:0 > 0
     let s:plug_home_org = a:1
-    let home = s:path(fnamemodify(expand(a:1), ':p'))
+    let home = s:path(s:plug_fnamemodify(s:plug_expand(a:1), ':p'))
   elseif exists('g:plug_home')
     let home = s:path(g:plug_home)
+  elseif has('nvim')
+    let home = stdpath('data') . '/plugged'
   elseif !empty(&rtp)
     let home = s:path(split(&rtp, ',')[0]) . '/plugged'
   else
     return s:err('Unable to determine plug home. Try calling plug#begin() with a path argument.')
   endif
-  if fnamemodify(home, ':t') ==# 'plugin' && fnamemodify(home, ':h') ==# s:first_rtp
+  if s:plug_fnamemodify(home, ':t') ==# 'plugin' && s:plug_fnamemodify(home, ':h') ==# s:first_rtp
     return s:err('Invalid plug home. '.home.' is a standard Vim runtime path and is not allowed.')
   endif
 
