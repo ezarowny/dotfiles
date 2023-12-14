@@ -2,12 +2,12 @@
 Hey! You found my dotfiles!
 
 ## Linking
-It would be wisest to just symlink the important files instead of copying them. At some point I will make a script that does this. For now:
+It would be wisest to just symlink most of the important files instead of copying them. At some point I will make a script that does this. For now, execute the following from your home directory:
 
 ```bash
-cp zshrc ~/.zshrc
-ln -s gvimrc ~/.gvimrc
-ln -s tmux.conf ~/.tmux.conf
-ln -s vim ~/.vim
-ln -s vimrc ~/.vimrc
+cp Development/dotfiles/zshrc .zshrc
+ln -s Development/dotfiles/gvimrc .gvimrc
+ln -s Development/dotfiles/tmux.conf .tmux.conf
+ln -s Development/dotfiles/vim .vim
+ln -s Development/dotfiles/vimrc .vimrc
 ```
