@@ -1,3 +1,6 @@
+autoload -Uz compinit
+compinit
+
 source ~/.git-prompt.sh
 
 precmd () { __git_ps1 "%F{166}${VIRTUAL_ENV_PROMPT}%f%n@%m:%~ " "$ " "(%s)"}
