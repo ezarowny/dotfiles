@@ -6,6 +6,7 @@ It would be wisest to just symlink most of the important files instead of copyin
 
 ```bash
 cp Development/dotfiles/zshrc .zshrc
+cp Development/dotfiles/config/pip/pip.conf .config/pip/
 ln -s Development/dotfiles/gvimrc .gvimrc
 ln -s Development/dotfiles/tmux.conf .tmux.conf
 ln -s Development/dotfiles/vim .vim
